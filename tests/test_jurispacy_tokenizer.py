@@ -29,6 +29,13 @@ def test_square_bracket_dot():
     assert sent[4].text == "."
 
 
+def test_token_starts_with_hyphen():
+    sent = Sentence("-Amaury est né ici.", use_tokenizer=tokenizer)
+    assert len(sent) == 6
+    assert sent[0].text == "-"
+    assert sent[1].text == "Amaury"
+
+
 def test_get_tokenized_sentences():
     text = """Bonjour tout le monde!
 

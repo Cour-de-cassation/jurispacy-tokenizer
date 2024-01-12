@@ -1,7 +1,11 @@
-from flair.data import Tokenizer, Sentence
 import re
-from typing import List
+import logging
+
+from flair.data import Tokenizer, Sentence
+
 from .config import SPECIAL_CASES
+
+__version__ = "1.1.5"
 
 
 class JuriSpacyTokenizer(Tokenizer):
@@ -22,8 +26,20 @@ class JuriSpacyTokenizer(Tokenizer):
             ) from e
 
         self.spacy_version = spacy.__version__
-        self.nlp = spacy.load("fr_core_news_sm", disable=["tagger", "parser", "ner"])
-        # Attribute max_length raise a ValueError if number of characters exceed the default value
+        self.nlp = spacy.load(
+            "fr_core_news_sm",
+            exclude=[
+                "tok2vec",
+                "morphologizer",
+                "parser",
+                "senter",
+                "attribute_ruler",
+                "lemmatizer",
+                "ner",
+            ],
+        )
+        # Attribute max_length raise a ValueError
+        # if number of characters exceed the default value
         self.nlp.max_length = 1000000000
 
         # Add special cases
@@ -31,11 +47,23 @@ class JuriSpacyTokenizer(Tokenizer):
             case = [{ORTH: c}]
             self.nlp.tokenizer.add_special_case(c, case)
 
-    def tokenize(self, text: str) -> List[str]:
+        # Silencing flair EmptySentence warnings
+        flair_logger = logging.getLogger("flair")
+        flair_logger.addFilter(EmptySentenceWarningFilter)
+
+    def tokenize(self, text: str) -> list[str]:
+        """Tokenizes a text into a list of tokens as strings.
+
+        Args:
+            text (str): text to tokenize.
+
+        Returns:
+            list[str]: list of tokens as string.
+        """
         from spacy.tokens.doc import Doc
 
         doc: Doc = self.nlp(text)
-        words: List[str] = []
+        words: list[str] = []
 
         # Handle case like M.Dupont : split into 2 tokens (M., Dupont)
         # like_typo_mister = re.compile(r"M(?:M|r?)\.(?:[A-Z]\w+)")
@@ -65,6 +93,15 @@ class JuriSpacyTokenizer(Tokenizer):
                 with doc.retokenize() as retokenizer:
                     retokenizer.split(doc[i], [tok1, tok2], heads=heads)
 
+            # Handle case like "-Dupont" :
+            # split  the token "-Dupont" into two tokens : "-" and "Dupont"
+            if tok.text.startswith("-") and len(tok.text) > 1 and tok.text[1].isupper():
+                split_toks = tok.text.split("-", 1)
+                tok1, tok2 = "-", split_toks[1]
+                heads = [(doc[i], 1), (doc[i], 0)]
+                with doc.retokenize() as retokenizer:
+                    retokenizer.split(doc[i], [tok1, tok2], heads=heads)
+
         # Handle case like Jean-Paul : keep only one token for hyphenated name
         like_hyphenated_name = re.compile(r"(?:[A-Z]\w+)-(?:[A-Z]\w+)")
         if re.search(like_hyphenated_name, doc.text):
@@ -83,10 +120,10 @@ class JuriSpacyTokenizer(Tokenizer):
 
         return words
 
-    def get_tokenized_sentences(self, text: str) -> list:
+    def get_tokenized_sentences(self, text: str) -> list[Sentence]:
         """Method that returns a list of flair.data.Sentence from a long text
         Args:
-            text (str): test to cut into tokenized sentences
+            text (str): test to split into tokenized sentences
         Returns:
             list[Sentence]: a list of Sentences
         """
@@ -136,4 +173,13 @@ class JuriSpacyTokenizer(Tokenizer):
 
     @property
     def name(self) -> str:
-        return f"JuriSpacyTokenizer_using_spacy_v.{self.spacy_version}"
+        """Returns the name and version of JuriSpacyTokenizer"""
+        return f"JuriSpacyTokenizer_v{__version__}_using_spacy_v.{self.spacy_version}"
+
+
+class EmptySentenceWarningFilter(logging.Filter):
+    """Logging filter to prevent empty Sentence Warnings from flair"""
+
+    def filter(self, record=None):
+        """Returns True if 'empty Sentence' is not in record"""
+        return record and "empty Sentence" not in record.getMessage()

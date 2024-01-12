@@ -2,7 +2,8 @@ from setuptools import setup, find_packages
 import jurispacy_tokenizer
 
 with open("requirements.txt", "r") as file:
-    requirements = file.read().split("\n")
+    requirements = [l for l in file.read().split("\n") if l and l[:2] != "--"]
+
 
 setup(
     name="jurispacy-tokenizer",
@@ -15,5 +16,5 @@ setup(
     packages=find_packages(),
     install_requires=requirements,
     zip_safe=False,
-    python_requires=">=3.9",
+    python_requires=">=3.8",
 )
