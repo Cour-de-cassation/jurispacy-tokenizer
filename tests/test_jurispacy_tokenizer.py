@@ -12,11 +12,9 @@ def test_mister_with_no_space():
     assert sent[4].text == "Barrière"
 
 
-def test_hyphanted_names():
-    sent = Sentence(
-        "Jean-Pierre et Marie-Claude mangent ensemble.", use_tokenizer=tokenizer
-    )
-    assert len(sent) == 6
+def test_hyphenated_names():
+    sent = Sentence("Jean-Pierre et Marie-Claude mangent ensemble -Esc1-RDC- Bat A.", use_tokenizer=tokenizer)
+    assert len(sent) == 9
     assert sent[0].text == "Jean-Pierre"
     assert sent[2].text == "Marie-Claude"
 

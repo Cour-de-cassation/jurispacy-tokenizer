@@ -5,7 +5,7 @@ from flair.data import Tokenizer, Sentence
 
 from .config import SPECIAL_CASES
 
-__version__ = "1.1.5"
+__version__ = "1.1.6"
 
 
 class JuriSpacyTokenizer(Tokenizer):
@@ -28,15 +28,7 @@ class JuriSpacyTokenizer(Tokenizer):
         self.spacy_version = spacy.__version__
         self.nlp = spacy.load(
             "fr_core_news_sm",
-            exclude=[
-                "tok2vec",
-                "morphologizer",
-                "parser",
-                "senter",
-                "attribute_ruler",
-                "lemmatizer",
-                "ner",
-            ],
+            exclude=["tok2vec", "morphologizer", "parser", "senter", "attribute_ruler", "lemmatizer", "ner"],
         )
         # Attribute max_length raise a ValueError
         # if number of characters exceed the default value
@@ -70,9 +62,7 @@ class JuriSpacyTokenizer(Tokenizer):
         # Handle case missing space between tél and number
         # like_typo_phone = re.compile(r"t(?:é|e)l\.(?:([0-9]+)$)")
         # Both in one regex
-        like_mister_phone = re.compile(
-            r"M(?:M|r?)\.(?:[A-Z]\w+)|t(?:é|e)l\.(?:([0-9]+)$)"
-        )
+        like_mister_phone = re.compile(r"M(?:M|r?)\.(?:[A-Z]\w+)|t(?:é|e)l\.(?:([0-9]+)$)")
         # Handle case like "[M. Dupont]." :
         # split  the token "Dupont]." into three tokens : "Dupont", "]" and "."
         like_square_bracket_dot = re.compile(r"\S+]\.")
@@ -103,20 +93,14 @@ class JuriSpacyTokenizer(Tokenizer):
                     retokenizer.split(doc[i], [tok1, tok2], heads=heads)
 
         # Handle case like Jean-Paul : keep only one token for hyphenated name
-        like_hyphenated_name = re.compile(r"(?:[A-Z]\w+)-(?:[A-Z]\w+)")
+        like_hyphenated_name = re.compile(r"(?:[A-Z][a-zA-Z]+)-(?:[A-Z][a-zA-Z]+)")
         if re.search(like_hyphenated_name, doc.text):
             for match in re.finditer(like_hyphenated_name, doc.text):
-                if token_idx := [
-                    token.i for token in doc if match.start() <= token.idx < match.end()
-                ]:
+                if token_idx := [token.i for token in doc if match.start() <= token.idx < match.end()]:
                     with doc.retokenize() as retokenizer:
                         retokenizer.merge(doc[token_idx[0] : token_idx[-1] + 1])
 
-        words.extend(
-            word.text
-            for word in doc
-            if len(word.text.strip()) != 0 or "\n" in word.text
-        )
+        words.extend(word.text for word in doc if len(word.text.strip()) != 0 or "\n" in word.text)
 
         return words
 
@@ -145,9 +129,7 @@ class JuriSpacyTokenizer(Tokenizer):
                 )
                 sentences.append(s)
                 s_tokens = []
-            elif (not token.text.isspace()) and (
-                token.text not in ["?", ".", "!", ";"]
-            ):
+            elif (not token.text.isspace()) and (token.text not in ["?", ".", "!", ";"]):
                 token.sentence = None
                 s_tokens.append(token)
             elif token.text in ["?", ".", "!", ";"]:
