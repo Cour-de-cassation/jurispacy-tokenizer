@@ -3,4 +3,4 @@ torch
 
 scipy<1.13.0
 spacy==3.6.1
-flair==0.12.2
+flair==0.15.0
