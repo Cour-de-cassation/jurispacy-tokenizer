@@ -2,21 +2,21 @@
 
 ## Description
 
-Tokenizer utilisé dans les projets NLP de la Cour de cassation. Il repose sur les librairies [Flair](https://github.com/flairNLP/flair) et [spaCy](https://github.com/explosion/spaCy/).
+Tokenizer(s) used in our NLP projects. Built using [Flair](https://github.com/flairNLP/flair) and [spaCy](https://github.com/explosion/spaCy/)
 
 ## Installation
 
 ```bash
 cd nlp-jurispacy-tokenizer
 pip install .
-python -m spacy download fr_core_news_sm
+python -m spacy download fr_core_news_sm-3.6.0
 ```
 
 ## Usage
 
-### Tokenization de strings
+### Tokenize strings
 
-On peut utiliser cette librairie pour tokenizer des strings en tokens, représentés par des strings.
+You can use this library to tokenize a string into a list of strings representing tokens:
 
 ```python
 from jurispacy_tokenizer import JuriSpacyTokenizer
@@ -30,7 +30,7 @@ for token in tokens:
     print(token)
 ```
 
-La sortie devrait être:
+This should ouptut:
 
 ```
 M.
@@ -42,9 +42,9 @@ heureux
 .
 ```
 
-## Tokenize de longs textes
+## Tokenize longer text into sentences
 
-On peut aussi utiliser le tokenizer pour récupérer des phrases (`flair.data.Sentence`) à partir de longs textes.
+You can also parse longer text to create Flair Sentence objects:
 
 ```python
 from jurispacy_tokenizer import JuriSpacyTokenizer
@@ -62,7 +62,7 @@ for s in sentences:
 
 ```
 
-La sortie devrait être:
+This should output:
 
 ```
 Sentence[5]: "Bonjour tout le monde!"

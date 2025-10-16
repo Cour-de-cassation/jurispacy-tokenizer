@@ -5,18 +5,40 @@ from jurispacy_tokenizer import JuriSpacyTokenizer
 tokenizer = JuriSpacyTokenizer()
 
 
-def test_mister_with_no_space():
-    sent = Sentence("M. Fouret et M.Barrière.", use_tokenizer=tokenizer)
-    assert len(sent) == 6
+def test_names_without_space():
+    sent = Sentence(
+        "M. Fouret et M.Barrière MmeBIDULE etDUPONT MACHINfaisant alorsTRUCmuche BIDULEMadame É.Chouette MONSIEURPendule MMme ROND.",
+        use_tokenizer=tokenizer,
+    )
+    print(sent.tokens)
+    assert len(sent) == 21
     assert sent[3].text == "M."
     assert sent[4].text == "Barrière"
+    assert sent[5].text == "Mme"
+    assert sent[6].text == "BIDULE"
+    assert sent[7].text == "et"
+    assert sent[8].text == "DUPONT"
+    assert sent[9].text == "MACHIN"
+    assert sent[10].text == "faisant"
+    assert sent[11].text == "alorsTRUCmuche"
+    assert sent[12].text == "BIDULE"
+    assert sent[13].text == "Madame"
+    assert sent[14].text == "É."
+    assert sent[15].text == "Chouette"
+    assert sent[16].text == "MONSIEUR"
+    assert sent[17].text == "Pendule"
+    assert sent[18].text == "MMme"
 
 
 def test_hyphenated_names():
-    sent = Sentence("Jean-Pierre et Marie-Claude mangent ensemble -Esc1-RDC- Bat A.", use_tokenizer=tokenizer)
-    assert len(sent) == 9
+    sent = Sentence(
+        "Jean-Pierre et Marie-Claude ainsi qu'Aimé-Charles mangent ensemble -Esc1-RDC- Bat A.",
+        use_tokenizer=tokenizer,
+    )
+    assert len(sent) == 12
     assert sent[0].text == "Jean-Pierre"
     assert sent[2].text == "Marie-Claude"
+    assert sent[5].text == "Aimé-Charles"
 
 
 def test_square_bracket_dot():

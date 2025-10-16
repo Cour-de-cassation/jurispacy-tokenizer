@@ -1,11 +1,12 @@
-import re
+import regex as re
 import logging
 
-from flair.data import Tokenizer, Sentence
+from flair.tokenization import Tokenizer
+from flair.data import Sentence
+
+import importlib.metadata
 
 from .config import SPECIAL_CASES
-
-__version__ = "1.1.6"
 
 
 class JuriSpacyTokenizer(Tokenizer):
@@ -28,7 +29,15 @@ class JuriSpacyTokenizer(Tokenizer):
         self.spacy_version = spacy.__version__
         self.nlp = spacy.load(
             "fr_core_news_sm",
-            exclude=["tok2vec", "morphologizer", "parser", "senter", "attribute_ruler", "lemmatizer", "ner"],
+            exclude=[
+                "tok2vec",
+                "morphologizer",
+                "parser",
+                "senter",
+                "attribute_ruler",
+                "lemmatizer",
+                "ner",
+            ],
         )
         # Attribute max_length raise a ValueError
         # if number of characters exceed the default value
@@ -42,6 +51,51 @@ class JuriSpacyTokenizer(Tokenizer):
         # Silencing flair EmptySentence warnings
         flair_logger = logging.getLogger("flair")
         flair_logger.addFilter(EmptySentenceWarningFilter)
+
+    def _recursive_tokenization(
+        self, doc, r_square_bracket, r_name_phone_no_space, token_idx=0
+    ):
+        for i, tok in enumerate(doc[token_idx:]):
+            if re.match(r_square_bracket, tok.text):
+                split_toks = tok.text.split("]", 1)
+                tok1 = split_toks[0]
+                tok2 = "]"
+                tok3 = split_toks[1]
+                heads = [
+                    (doc[i + token_idx], 1),
+                    (doc[i + token_idx], 0),
+                    (doc[i + token_idx], 0),
+                ]
+                with doc.retokenize() as retokenizer:
+                    retokenizer.split(
+                        doc[i + token_idx], [tok1, tok2, tok3], heads=heads
+                    )
+                self._recursive_tokenization(
+                    doc, r_square_bracket, r_name_phone_no_space, token_idx=i
+                )
+                break
+
+            if match := re.match(r_name_phone_no_space, tok.text):
+                tok1, tok2 = [group for group in match.groups() if group]
+                heads = [(doc[i + token_idx], 1), (doc[i + token_idx], 0)]
+                with doc.retokenize() as retokenizer:
+                    retokenizer.split(doc[i + token_idx], [tok1, tok2], heads=heads)
+                self._recursive_tokenization(
+                    doc, r_square_bracket, r_name_phone_no_space, token_idx=i
+                )
+                break
+
+            # Handle case like "-Dupont" :
+            # split  the token "-Dupont" into two tokens : "-" and "Dupont"
+            if tok.text.startswith("-") and len(tok.text) > 1 and tok.text[1].isupper():
+                split_toks = tok.text.split("-", 1)
+                tok1, tok2 = "-", split_toks[1]
+                heads = [(doc[i + token_idx], 1), (doc[i + token_idx], 0)]
+                with doc.retokenize() as retokenizer:
+                    retokenizer.split(doc[i + token_idx], [tok1, tok2], heads=heads)
+                self._recursive_tokenization(
+                    doc, r_square_bracket, r_name_phone_no_space, token_idx=i
+                )
 
     def tokenize(self, text: str) -> list[str]:
         """Tokenizes a text into a list of tokens as strings.
@@ -62,45 +116,34 @@ class JuriSpacyTokenizer(Tokenizer):
         # Handle case missing space between tél and number
         # like_typo_phone = re.compile(r"t(?:é|e)l\.(?:([0-9]+)$)")
         # Both in one regex
-        like_mister_phone = re.compile(r"M(?:M|r?)\.(?:[A-Z]\w+)|t(?:é|e)l\.(?:([0-9]+)$)")
+        like_names_and_phones_without_space = re.compile(
+            r"(^(?:[A-Z\u00C0-\u00DD]|M(?:M|r?))\.|Mme|(?i:madame)|(?i:monsieur))([A-Z\u00C0-\u00DD]\w+)$|([A-Z\u00C0-\u00DD]\w+)(M(?:M|r?)\.|Mme|Madame|Monsieur)$|(^[a-zà-ÿ]{2,})([A-Z\u00C0-\u00DD]{2,}$)|(^(?!MM)[A-Z\u00C0-\u00DD]{2,})([a-zà-ÿ]{2,}$)|(t(?:é|e)l\.)((?:[0-9]+)$)"
+        )
         # Handle case like "[M. Dupont]." :
         # split  the token "Dupont]." into three tokens : "Dupont", "]" and "."
         like_square_bracket_dot = re.compile(r"\S+]\.")
-        for i, tok in enumerate(doc):
-            if re.match(like_square_bracket_dot, tok.text):
-                split_toks = tok.text.split("]", 1)
-                tok1 = split_toks[0]
-                tok2 = "]"
-                tok3 = split_toks[1]
-                heads = [(doc[i], 1), (doc[i], 0), (doc[i], 0)]
-                with doc.retokenize() as retokenizer:
-                    retokenizer.split(doc[i], [tok1, tok2, tok3], heads=heads)
 
-            if re.match(like_mister_phone, tok.text):
-                split_toks = tok.text.split(".", 1)
-                tok1, tok2 = f"{split_toks[0]}.", split_toks[1]
-                heads = [(doc[i], 1), (doc[i], 0)]
-                with doc.retokenize() as retokenizer:
-                    retokenizer.split(doc[i], [tok1, tok2], heads=heads)
-
-            # Handle case like "-Dupont" :
-            # split  the token "-Dupont" into two tokens : "-" and "Dupont"
-            if tok.text.startswith("-") and len(tok.text) > 1 and tok.text[1].isupper():
-                split_toks = tok.text.split("-", 1)
-                tok1, tok2 = "-", split_toks[1]
-                heads = [(doc[i], 1), (doc[i], 0)]
-                with doc.retokenize() as retokenizer:
-                    retokenizer.split(doc[i], [tok1, tok2], heads=heads)
+        self._recursive_tokenization(
+            doc, like_square_bracket_dot, like_names_and_phones_without_space
+        )
 
         # Handle case like Jean-Paul : keep only one token for hyphenated name
-        like_hyphenated_name = re.compile(r"(?:[A-Z][a-zA-Z]+)-(?:[A-Z][a-zA-Z]+)")
+        like_hyphenated_name = re.compile(
+            r"(?:[A-Z\u00C0-\u00DD][a-zà-ÿA-Z\u00C0-\u00DD]+)-(?:[A-Z\u00C0-\u00DD][a-zà-ÿA-Z\u00C0-\u00DD]+)"
+        )
         if re.search(like_hyphenated_name, doc.text):
             for match in re.finditer(like_hyphenated_name, doc.text):
-                if token_idx := [token.i for token in doc if match.start() <= token.idx < match.end()]:
+                if token_idx := [
+                    token.i for token in doc if match.start() <= token.idx < match.end()
+                ]:
                     with doc.retokenize() as retokenizer:
                         retokenizer.merge(doc[token_idx[0] : token_idx[-1] + 1])
 
-        words.extend(word.text for word in doc if len(word.text.strip()) != 0 or "\n" in word.text)
+        words.extend(
+            word.text
+            for word in doc
+            if len(word.text.strip()) != 0 or "\n" in word.text
+        )
 
         return words
 
@@ -129,7 +172,9 @@ class JuriSpacyTokenizer(Tokenizer):
                 )
                 sentences.append(s)
                 s_tokens = []
-            elif (not token.text.isspace()) and (token.text not in ["?", ".", "!", ";"]):
+            elif (not token.text.isspace()) and (
+                token.text not in ["?", ".", "!", ";"]
+            ):
                 token.sentence = None
                 s_tokens.append(token)
             elif token.text in ["?", ".", "!", ";"]:
@@ -156,7 +201,7 @@ class JuriSpacyTokenizer(Tokenizer):
     @property
     def name(self) -> str:
         """Returns the name and version of JuriSpacyTokenizer"""
-        return f"JuriSpacyTokenizer_v{__version__}_using_spacy_v.{self.spacy_version}"
+        return f"JuriSpacyTokenizer_v{importlib.metadata.version('jurispacy_tokenizer')}_using_spacy_v.{self.spacy_version}"
 
 
 class EmptySentenceWarningFilter(logging.Filter):

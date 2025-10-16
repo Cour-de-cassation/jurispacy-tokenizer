@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jurispacy-tokenizer"
+version = "1.1.20"
+description = "Flair tokenizer adapted to French court decisions using spacy tokenization"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT License"}
+authors = [
+    {name = "Cour de cassation", email = "amaury.fouret@justice.fr"}
+]
+keywords = ["nlp", "spacy", "flair", "tokenizer", "legal"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "torch",
+    "scipy<1.13.0",
+    "spacy==3.6.1",
+    "flair==0.15.1",
+    "regex==2024.9.11",
+]
+
+[project.optional-dependencies]
+gpu = [
+    "torch==2.7.0",
+    "scipy<1.13.0",
+    "spacy==3.6.1",
+    "flair==0.15.1",
+    "regex==2024.9.11",
+]
+
+[project.urls]
+Homepage = "https://github.com/Cour-de-cassation/jurispacy-tokenizer"
+Repository = "https://github.com/Cour-de-cassation/jurispacy-tokenizer"
+Issues = "https://github.com/Cour-de-cassation/jurispacy-tokenizer/issues"
+
+[tool.setuptools]
+packages = {find = {}}
+zip-safe = false
+
+[tool.pip]
+extra-index-url = "https://download.pytorch.org/whl/cpu"
