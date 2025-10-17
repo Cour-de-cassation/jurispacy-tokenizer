@@ -7,8 +7,7 @@ Tokenizer utilisé dans les projets NLP de la Cour de cassation. Il repose sur l
 ## Installation
 
 ```bash
-cd nlp-jurispacy-tokenizer
-pip install .
+pip install jurispacy-tokenizer
 python -m spacy download fr_core_news_sm-3.6.0
 ```
 
