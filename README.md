@@ -8,7 +8,7 @@ Tokenizer(s) used in our NLP projects. Built using [Flair](https://github.com/fl
 
 ```bash
 pip install jurispacy-tokenizer
-python -m spacy download fr_core_news_sm-3.6.0
+python -m spacy download fr_core_news_sm-3.8.0
 ```
 
 ## Usage

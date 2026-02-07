@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "jurispacy-tokenizer"
-version = "1.2.0"
+version = "1.2.1"
 description = "Flair tokenizer adapted to French court decisions using spacy tokenization"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,9 +23,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "torch==2.7.0",
-    "scipy<1.13.0",
-    "spacy==3.6.1",
+    "spacy==3.8.11",
     "flair==0.15.1",
     "regex==2024.9.11",
 ]
